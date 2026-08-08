@@ -48,19 +48,19 @@ export function shuffle(list) {
 export function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
 
 /**
- * Choose the column count that makes the cards as large as possible in the
- * space available. Cards are square, so this is just: for each candidate column
- * count, the card size is limited by either width or height — take the best.
+ * Fit a fixed grid to the space available. The rectangle is given — 4x3, 4x4,
+ * 5x4 — so the only choice is which way round it sits. A 4x3 board turned on
+ * its side is a 3x4 board: still a clean rectangle, and on a portrait screen
+ * it makes the cards substantially bigger.
  */
-export function bestColumns(count, width, height, gap) {
-  let best = { cols: 1, size: 0 };
-  for (let cols = 1; cols <= count; cols++) {
-    const rows = Math.ceil(count / cols);
-    const size = Math.min(
-      (width - gap * (cols - 1)) / cols,
-      (height - gap * (rows - 1)) / rows,
-    );
-    if (size > best.size) best = { cols, size };
-  }
-  return best;
+export function fitGrid(cols, rows, width, height, gap) {
+  const sizeOf = (c, r) => Math.min(
+    (width - gap * (c - 1)) / c,
+    (height - gap * (r - 1)) / r,
+  );
+  const upright = sizeOf(cols, rows);
+  const turned = sizeOf(rows, cols);
+  return turned > upright
+    ? { cols: rows, rows: cols, size: turned }
+    : { cols, rows, size: upright };
 }

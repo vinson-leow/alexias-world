@@ -5,7 +5,7 @@
 
 import { el } from './ui.js';
 import { settings, save, setCardCount, SPEEDS } from './state.js';
-import { MIN_CARDS, MAX_CARDS } from './cards.js';
+import { SIZES } from './cards.js';
 import { say, hush, sfx } from './audio.js';
 
 export function openParentGate(host, { onChange } = {}) {
@@ -28,20 +28,24 @@ export function openParentGate(host, { onChange } = {}) {
   function showPanel() {
     sfx.tap();
 
-    /* --- card count: the "add two cards" control --- */
-    const countLabel = el('strong', {}, '');
-    const paintCount = () => {
-      countLabel.textContent = `${settings.cardCount} cards  (${settings.cardCount / 2} pairs)`;
+    /* --- board size --- */
+    const sizeRow = el('div', { class: 'row wrap' });
+    const paintSize = () => {
+      sizeRow.replaceChildren(
+        ...SIZES.map((s) =>
+          el('button', {
+            class: settings.cardCount === s.cards ? '' : 'subtle',
+            onclick: () => {
+              if (settings.cardCount === s.cards) return;
+              setCardCount(s.cards);
+              sfx.tap();
+              paintSize();
+              onChange?.();
+            },
+          }, `${s.label}  ·  ${s.cards / 2} pairs`)),
+      );
     };
-    paintCount();
-
-    const step = (delta) => {
-      const before = settings.cardCount;
-      const after = setCardCount(before + delta);
-      if (after !== before) { sfx.tap(); paintCount(); onChange?.(); }
-    };
-    const minus = el('button', { class: 'step', onclick: () => step(-2) }, '−');
-    const plus  = el('button', { class: 'step', onclick: () => step(+2) }, '+');
+    paintSize();
 
     /* --- speed --- */
     const speedRow = el('div', { class: 'row wrap' });
@@ -85,8 +89,8 @@ export function openParentGate(host, { onChange } = {}) {
     const panel = el('div', { class: 'sheet' },
       el('h2', {}, 'Grown-up settings'),
 
-      el('p', {}, 'How many cards? Start at 8 and add a pair whenever she finds it easy. The board grows two cards at a time, up to 20.'),
-      el('div', { class: 'row' }, minus, countLabel, plus),
+      el('p', {}, 'Board size. Start small and move up when she finds it easy.'),
+      sizeRow,
 
       el('p', {}, 'How long a mismatched pair stays face up. Longer gives more time to look and name the picture.'),
       speedRow,
@@ -96,15 +100,6 @@ export function openParentGate(host, { onChange } = {}) {
 
       el('button', { onclick: close }, 'Done'),
     );
-
-    // Keep the buttons honest about the limits.
-    const paintLimits = () => {
-      minus.disabled = settings.cardCount <= MIN_CARDS;
-      plus.disabled = settings.cardCount >= MAX_CARDS;
-    };
-    paintLimits();
-    minus.addEventListener('click', paintLimits);
-    plus.addEventListener('click', paintLimits);
 
     veil.replaceChildren(panel);
   }

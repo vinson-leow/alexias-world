@@ -1,7 +1,7 @@
 /* Persistent settings. Deliberately tiny.
    Stars only ever go up — nothing in the app takes them away or compares them. */
 
-import { MIN_CARDS, MAX_CARDS } from './cards.js';
+import { MIN_CARDS, SIZES } from './cards.js';
 
 const KEY = 'alexias-world/memory/v1';
 
@@ -13,7 +13,8 @@ export const SPEEDS = {
 };
 
 const defaults = {
-  cardCount: MIN_CARDS,
+  cardCount: MIN_CARDS,   // 12 — the 4 x 3 board
+
   speed: 'normal',
   narration: true,
   volume: 1,
@@ -26,8 +27,9 @@ function load() {
   try {
     const raw = localStorage.getItem(KEY);
     const s = raw ? { ...defaults, ...JSON.parse(raw) } : { ...defaults };
-    // Guard against a hand-edited or stale value producing an unbuildable board.
-    s.cardCount = Math.min(MAX_CARDS, Math.max(MIN_CARDS, s.cardCount - (s.cardCount % 2)));
+    // Guard against a stale or hand-edited value producing an unbuildable board.
+    // Anything not an offered size falls back to the smallest.
+    if (!SIZES.some((o) => o.cards === s.cardCount)) s.cardCount = MIN_CARDS;
     if (!SPEEDS[s.speed]) s.speed = 'normal';
     return s;
   } catch {
@@ -50,7 +52,6 @@ export function lookBackMs() { return SPEEDS[settings.speed].lookBack; }
 export function addStar(n = 1) { settings.stars += n; save(); return settings.stars; }
 
 export function setCardCount(n) {
-  settings.cardCount = Math.min(MAX_CARDS, Math.max(MIN_CARDS, n - (n % 2)));
-  save();
+  if (SIZES.some((o) => o.cards === n)) { settings.cardCount = n; save(); }
   return settings.cardCount;
 }

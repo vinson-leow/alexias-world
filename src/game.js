@@ -7,8 +7,8 @@
  *   - Cards never move. A child who remembers "Bunny was in the corner" is right.
  */
 
-import { el, shuffle, pick, sparkleFrom, bestColumns } from './ui.js';
-import { pickDesigns, artUrl, preload } from './cards.js';
+import { el, shuffle, pick, sparkleFrom, fitGrid } from './ui.js';
+import { pickDesigns, artUrl, preload, sizeFor, LOGO_URL } from './cards.js';
 import { settings, lookBackMs, addStar, save } from './state.js';
 import { say, hush, sfx } from './audio.js';
 import { openParentGate } from './parentgate.js';
@@ -22,8 +22,8 @@ const VANISH_MS = 600;    // matched pair fades out and is gone
 export function startGame(root) {
   let cards = [];          // { design, node, faceUp, matched }
   let firstPick = null;
-  let locked = false;
   let found = 0;
+  let moves = 0;
   let pairsTotal = 0;
   let resolveTimer = null;
   let pending = null;      // the resolution owed for the pair currently face up
@@ -52,6 +52,7 @@ export function startGame(root) {
 
   const board = el('div', { class: 'board' });
   const foundRow = el('div', { class: 'found-row', 'aria-label': 'Pairs found' });
+  const moveCount = el('span', { class: 'move-count' }, '0');
 
   const scene = el('div', { class: 'scene' },
     el('div', { class: 'topbar' },
@@ -66,6 +67,12 @@ export function startGame(root) {
       }, '🔄'),
     ),
     board,
+    // A tally, not a score: nothing counts down, nothing runs out, and no
+    // number here can end the game.
+    el('div', { class: 'bottombar' },
+      el('span', { class: 'move-label' }, 'Turns'),
+      moveCount,
+    ),
   );
 
   /* ---------- dealing ---------- */
@@ -74,9 +81,10 @@ export function startGame(root) {
     clearTimeout(resolveTimer);
     pending = null;
     hush();
-    locked = false;
     firstPick = null;
     found = 0;
+    moves = 0;
+    moveCount.textContent = '0';
     nudgeCount = 0;
 
     const designs = pickDesigns(settings.cardCount, settings.altOutfits);
@@ -117,7 +125,8 @@ export function startGame(root) {
   function layout() {
     if (!cards.length) return;
     const gap = Math.max(8, Math.min(20, board.clientWidth * 0.015));
-    const { cols, size } = bestColumns(cards.length, board.clientWidth, board.clientHeight, gap);
+    const shape = sizeFor(cards.length);
+    const { cols, size } = fitGrid(shape.cols, shape.rows, board.clientWidth, board.clientHeight, gap);
     board.style.gap = `${gap}px`;
     board.style.gridTemplateColumns = `repeat(${cols}, ${Math.floor(size)}px)`;
     board.style.setProperty('--card-size', `${Math.floor(size)}px`);
@@ -127,7 +136,13 @@ export function startGame(root) {
 
   function tap(i) {
     const card = cards[i];
-    if (locked || card.faceUp || card.matched) return;
+    if (card.faceUp || card.matched) return;
+
+    // A pair already turned is settled immediately rather than blocking the
+    // tap. Waiting out a timer is where a small child gives up and starts
+    // jabbing the screen, so the board never refuses a tap: the old pair drops
+    // away and this tap begins the next turn.
+    if (pending) runPending();
 
     turnUp(card);
     sfx.flip();
@@ -138,7 +153,9 @@ export function startGame(root) {
     const second = card;
     const first = firstPick;
     firstPick = null;
-    locked = true;                       // no more taps until this pair resolves
+
+    moves += 1;
+    moveCount.textContent = String(moves);
 
     if (first.design.id === second.design.id) {
       // A match resolves faster than a miss — there is nothing to memorise, so
@@ -179,11 +196,7 @@ export function startGame(root) {
       setTimeout(() => { c.node.classList.add('gone'); }, VANISH_MS);
     }
 
-    if (found === pairsTotal) {
-      setTimeout(win, VANISH_MS + 300);
-    } else {
-      locked = false;
-    }
+    if (found === pairsTotal) setTimeout(win, VANISH_MS + 300);
   }
 
   function onMiss(a, b) {
@@ -193,7 +206,6 @@ export function startGame(root) {
     // Only nudge occasionally — a voice on every single miss becomes nagging.
     nudgeCount += 1;
     if (nudgeCount % 3 === 1) say(pick(NUDGE));
-    setTimeout(() => { locked = false; }, FLIP_MS);
   }
 
   function win() {
@@ -207,6 +219,7 @@ export function startGame(root) {
       el('div', { class: 'win-glyph' }, '🎉'),
       el('div', { class: 'win-word' }, 'You found them all!'),
       el('div', { class: 'win-stars' }, '⭐', el('span', {}, String(stars))),
+      el('div', { class: 'win-turns' }, `${moves} turns`),
       el('button', {
         class: 'big-button',
         'aria-label': 'Play again',
@@ -221,11 +234,19 @@ export function startGame(root) {
   root.replaceChildren(scene);
   deal();
 
-  let resizeTimer = null;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(layout, 120);
-  });
+  /* Re-fit whenever the board's box changes — first paint, rotation, the iPad
+     keyboard, anything. A plain resize listener misses the first pass, when the
+     board has been inserted but has not been given its height yet. Setting the
+     column template cannot change the board's own size, so this cannot loop. */
+  if (window.ResizeObserver) {
+    new ResizeObserver(layout).observe(board);
+  } else {
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(layout, 120);
+    });
+  }
 
   // Coming back to the app settles any pair left hanging while it was away.
   document.addEventListener('visibilitychange', () => {
