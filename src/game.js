@@ -29,6 +29,29 @@ export function startGame(root) {
   let pending = null;      // the resolution owed for the pair currently face up
   let lockedAt = 0;
   let nudgeCount = 0;
+  let startedAt = null;    // the first card turned starts the clock, not the deal
+  let clockTimer = null;
+
+  const clockText = (ms) => {
+    const secs = Math.floor(ms / 1000);
+    return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  };
+
+  /* The clock starts on the first card turned rather than when the board is
+     dealt, so time spent looking at the backs — or being handed the tablet —
+     is not counted against anyone. */
+  function startClock() {
+    if (startedAt !== null) return;
+    startedAt = performance.now();
+    clockTimer = setInterval(() => {
+      timeCount.textContent = clockText(performance.now() - startedAt);
+    }, 250);
+  }
+
+  function stopClock() {
+    clearInterval(clockTimer);
+    clockTimer = null;
+  }
 
   /* A turned pair always owes a resolution. Keeping it in `pending` — rather
      than only inside a setTimeout — means it can be forced through if the timer
@@ -53,6 +76,7 @@ export function startGame(root) {
   const board = el('div', { class: 'board' });
   const foundRow = el('div', { class: 'found-row', 'aria-label': 'Pairs found' });
   const moveCount = el('span', { class: 'move-count' }, '0');
+  const timeCount = el('span', { class: 'move-count' }, '0:00');
 
   const scene = el('div', { class: 'scene' },
     el('div', { class: 'topbar' },
@@ -72,6 +96,8 @@ export function startGame(root) {
     el('div', { class: 'bottombar' },
       el('span', { class: 'move-label' }, 'Turns'),
       moveCount,
+      el('span', { class: 'move-label' }, 'Time'),
+      timeCount,
     ),
   );
 
@@ -86,6 +112,9 @@ export function startGame(root) {
     moves = 0;
     moveCount.textContent = '0';
     nudgeCount = 0;
+    stopClock();
+    startedAt = null;
+    timeCount.textContent = '0:00';
 
     const designs = pickDesigns(settings.cardCount, settings.altOutfits);
     preload(designs);
@@ -144,6 +173,7 @@ export function startGame(root) {
     // away and this tap begins the next turn.
     if (pending) runPending();
 
+    startClock();
     turnUp(card);
     sfx.flip();
     say(card.design.say);
@@ -209,6 +239,8 @@ export function startGame(root) {
   }
 
   function win() {
+    stopClock();
+    const took = startedAt === null ? 0 : performance.now() - startedAt;
     sfx.win();
     settings.rounds += 1;
     const stars = addStar();
@@ -219,7 +251,7 @@ export function startGame(root) {
       el('div', { class: 'win-glyph' }, '🎉'),
       el('div', { class: 'win-word' }, 'You found them all!'),
       el('div', { class: 'win-stars' }, '⭐', el('span', {}, String(stars))),
-      el('div', { class: 'win-turns' }, `${moves} turns`),
+      el('div', { class: 'win-turns' }, `${moves} turns  ·  ${clockText(took)}`),
       el('button', {
         class: 'big-button',
         'aria-label': 'Play again',
