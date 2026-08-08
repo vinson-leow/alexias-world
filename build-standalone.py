@@ -68,10 +68,14 @@ def main() -> None:
         src = (ROOT / "src" / f"{name}.js").read_text()
 
         if name == "cards":
-            # Card art comes from the embedded map instead of the filesystem.
+            # Card art and the logo come from embedded data URIs, not the filesystem.
             src = src.replace(
                 "function artUrl(name) { return `assets/cards/web/${name}.jpg`; }",
                 "function artUrl(name) { return ART[name]; }",
+            )
+            src = src.replace(
+                "const LOGO_URL = 'assets/brand/heart-icon-256.jpg';",
+                "const LOGO_URL = ICON;",
             )
         if name == "main":
             src = src.replace("src: 'assets/brand/heart-icon-256.jpg'", "src: ICON")

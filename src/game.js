@@ -125,14 +125,13 @@ export function startGame(root) {
     cards = deck.map((design, i) => {
       const face = el('div', { class: 'face front' });
       face.style.backgroundImage = `url("${artUrl(design.art)}")`;
+      const back = el('div', { class: 'face back' });
+      back.style.backgroundImage = `url("${LOGO_URL}")`;
       const node = el('button', {
         class: 'card',
         'aria-label': 'Hidden card',
         onclick: () => tap(i),
-      },
-        el('div', { class: 'face back' }, el('span', { class: 'back-mark' }, '💛')),
-        face,
-      );
+      }, back, face);
       return { design, node, faceUp: false, matched: false };
     });
     for (const c of cards) board.append(c.node);
