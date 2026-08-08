@@ -1,0 +1,293 @@
+/* Alexia's World — Memory Match.
+   Constraints driving everything here:
+   - nothing tappable is smaller than ~90px
+   - no text is required to play; words are decoration over pictures
+   - motion is soft; nothing flashes or strobes */
+
+:root {
+  --sun:   #FFC94A;
+  --sky:   #7FD4F5;
+  --leaf:  #7BD389;
+  --berry: #FF8DA1;
+  --grape: #B79CED;
+  --ink:   #3B3054;
+  --cream: #FFF3DF;
+  --paper: #FFFBF3;
+  --shadow: 0 8px 0 rgba(59, 48, 84, 0.15);
+
+  --flip: 300ms;          /* mirrors FLIP_MS in game.js */
+  --vanish: 600ms;        /* mirrors VANISH_MS in game.js */
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  background: linear-gradient(180deg, #FFE9C2 0%, var(--cream) 45%, #FFF7E8 100%);
+  color: var(--ink);
+  font-family: "Baloo 2", "Comic Sans MS", "Chalkboard SE", system-ui, sans-serif;
+  font-weight: 800;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app { position: relative; height: 100%; width: 100%; }
+
+.scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  animation: scene-in 360ms cubic-bezier(.2,.8,.3,1) both;
+}
+@keyframes scene-in {
+  from { opacity: 0; transform: scale(.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ---------- splash ---------- */
+
+.splash {
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 2.4vh, 26px);
+  cursor: pointer;
+  text-align: center;
+  padding: 24px;
+}
+.splash-icon {
+  width: clamp(140px, 30vmin, 260px);
+  height: auto;
+  border-radius: 32px;
+  box-shadow: var(--shadow);
+}
+.splash h1 {
+  margin: 0;
+  font-size: clamp(34px, 8vw, 84px);
+  line-height: 1.05;
+  text-shadow: 0 4px 0 rgba(255,255,255,.7);
+}
+.splash-sub { font-size: clamp(20px, 4vw, 38px); color: var(--berry); }
+.splash .hint {
+  font-size: clamp(18px, 3.2vw, 32px);
+  animation: bob 2.2s ease-in-out infinite;
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+/* ---------- top bar ---------- */
+
+.topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: max(12px, env(safe-area-inset-top)) clamp(12px, 2.5vw, 26px) 8px;
+}
+.chip {
+  width: 84px; height: 84px;
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  font-size: 38px;
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+.chip:active { transform: translateY(6px) scale(.96); }
+
+.found-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: clamp(4px, 1vw, 10px);
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.pip {
+  font-size: clamp(20px, 3.4vw, 34px);
+  opacity: .3;
+  line-height: 1;
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+.pip.lit { opacity: 1; transform: scale(1.15); }
+
+/* ---------- board ---------- */
+
+.board {
+  flex: 1 1 auto;
+  display: grid;
+  justify-content: center;
+  align-content: center;
+  padding: clamp(8px, 1.6vw, 22px);
+  min-height: 0;
+}
+
+.card {
+  width: var(--card-size, 120px);
+  height: var(--card-size, 120px);
+  padding: 0;
+  border: none;
+  background: none;
+  position: relative;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform var(--flip) ease, opacity var(--vanish) ease;
+  perspective: 1000px;
+}
+.card .face {
+  position: absolute;
+  inset: 0;
+  border-radius: clamp(12px, 14%, 28px);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition: transform var(--flip) ease;
+  background-size: cover;
+  background-position: center;
+  box-shadow: var(--shadow);
+  display: grid;
+  place-items: center;
+}
+.card .back {
+  background: linear-gradient(150deg, var(--berry) 0%, var(--grape) 100%);
+  transform: rotateY(0deg);
+}
+.card .back-mark { font-size: clamp(24px, 40%, 64px); opacity: .9; }
+.card .front {
+  background-color: var(--paper);
+  transform: rotateY(180deg);
+}
+
+.card.up .back  { transform: rotateY(-180deg); }
+.card.up .front { transform: rotateY(0deg); }
+
+.card:active:not(.up) { transform: translateY(5px); }
+
+/* matched: a beat of green, then it vanishes and leaves its gap */
+.card.matched .front {
+  box-shadow: 0 0 0 6px var(--leaf), var(--shadow);
+}
+.card.matched {
+  animation: matchPulse var(--vanish) ease forwards;
+  pointer-events: none;
+}
+@keyframes matchPulse {
+  0%   { transform: scale(1);    opacity: 1; }
+  35%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(.9);   opacity: 0; }
+}
+.card.gone { visibility: hidden; }
+
+/* ---------- win ---------- */
+
+.win {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 243, 223, .94);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 2.5vh, 26px);
+  z-index: 30;
+  animation: scene-in 320ms ease both;
+}
+.win-glyph { font-size: clamp(70px, 18vmin, 170px); animation: bob 1.8s ease-in-out infinite; }
+.win-word  { font-size: clamp(24px, 5vw, 48px); text-align: center; padding: 0 20px; }
+.win-stars {
+  display: flex; align-items: center; gap: 10px;
+  font-size: clamp(26px, 5vw, 46px);
+  background: var(--paper);
+  padding: 10px 28px;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+
+.big-button {
+  border: none;
+  background: var(--leaf);
+  color: var(--ink);
+  font: inherit;
+  min-width: 180px;
+  min-height: 140px;
+  border-radius: 34px;
+  box-shadow: var(--shadow);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+.big-button:active { transform: translateY(7px); }
+.big-button .glyph { font-size: clamp(44px, 9vw, 80px); line-height: 1; }
+.big-button .word  { font-size: clamp(18px, 2.8vw, 30px); }
+
+/* ---------- sparkle ---------- */
+
+.spark {
+  position: fixed;
+  pointer-events: none;
+  font-size: 32px;
+  z-index: 60;
+  animation: spark 1s ease-out forwards;
+}
+@keyframes spark {
+  0%   { transform: translate(0,0) scale(.4); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1.3); opacity: 0; }
+}
+
+/* ---------- parent gate ---------- */
+
+.veil {
+  position: absolute; inset: 0;
+  background: rgba(43, 36, 81, .72);
+  display: grid; place-items: center;
+  padding: 20px;
+  z-index: 40;
+  animation: scene-in 200ms ease both;
+  overflow-y: auto;
+}
+.sheet {
+  background: var(--paper);
+  border-radius: 32px;
+  padding: clamp(18px, 4vw, 36px);
+  width: min(94vw, 580px);
+  box-shadow: 0 20px 50px rgba(0,0,0,.35);
+  display: flex; flex-direction: column; gap: 14px;
+  font-weight: 700;
+}
+.sheet h2 { margin: 0; font-size: clamp(20px, 3.4vw, 30px); }
+.sheet p  { margin: 0; font-size: clamp(14px, 2.1vw, 18px); line-height: 1.5; opacity: .8; }
+.sheet .row { display: flex; gap: 12px; align-items: center; }
+.sheet .row.wrap { flex-wrap: wrap; }
+.sheet button {
+  font: inherit; font-weight: 800;
+  border: none; border-radius: 16px;
+  padding: 14px 22px; min-height: 56px;
+  background: var(--grape); color: #fff;
+  cursor: pointer; font-size: 17px;
+}
+.sheet button.subtle { background: #E7E1F3; color: var(--ink); }
+.sheet button:disabled { opacity: .35; cursor: default; }
+.sheet .step {
+  width: 64px; height: 64px; min-height: 64px;
+  padding: 0; font-size: 30px; border-radius: 50%;
+  background: var(--sky); color: var(--ink);
+}
+.gate-keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.gate-keys button { background: var(--sky); color: var(--ink); font-size: 24px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

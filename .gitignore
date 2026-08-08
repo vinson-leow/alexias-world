@@ -1,0 +1,21 @@
+# The published site needs only the game and its web-sized art. Everything
+# below stays on this machine — the repo is public, so anything committed here
+# is readable by anyone who finds it.
+
+# Full-resolution masters. The game uses assets/cards/web/*.jpg; there is no
+# reason to put 1024px photographs of the children on a public URL.
+assets/cards/*.png
+assets/characters/
+assets/brand/heart-icon.png
+
+# Private working material: locked character descriptions, the children's
+# heights, generation job IDs, reference-game measurements.
+CHARACTER-BIBLE.md
+CARD-ART.md
+REFERENCE-GAME.md
+SCENE-*.md
+
+# Local tooling and build output
+.claude/
+dist/
+.DS_Store
