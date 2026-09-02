@@ -18,7 +18,9 @@ OUT = ROOT / "dist" / "alexias-world-memory.html"
 # Dependency order — cards has no imports, main depends on everything.
 MODULES = [
     "cards", "state", "audio", "ui", "parentgate", "shell", "hub",
+    "tracing/glyphs", "tracing/tracer",
     "games/memory", "games/puzzle", "games/count", "games/shapes", "games/colours",
+    "games/letters", "games/words", "games/numbers",
     "main",
 ]
 

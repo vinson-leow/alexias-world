@@ -19,7 +19,10 @@ const defaults = {
   narration: true,
   volume: 1,
   altOutfits: false,
-  puzzlePieces: 2,        // 2 -> a 2x2 puzzle, 3 -> 3x3
+  puzzleSize: '2x2',      // columns x rows of the jigsaw
+  traceCase: 'upper',     // 'upper' | 'lower' | 'both'
+  traceLetter: 0,         // index into the alphabet, so she picks up where she left off
+  numbersMax: 10,         // number tracing goes 1..10 or 1..20
   stars: 0,
   rounds: 0,
 };
@@ -32,6 +35,9 @@ function load() {
     // Anything not an offered size falls back to the smallest.
     if (!SIZES.some((o) => o.cards === s.cardCount)) s.cardCount = MIN_CARDS;
     if (!SPEEDS[s.speed]) s.speed = 'normal';
+    // Earlier builds stored the puzzle as a single number (2 or 3).
+    if (typeof s.puzzlePieces === 'number') { s.puzzleSize = `${s.puzzlePieces}x${s.puzzlePieces}`; delete s.puzzlePieces; }
+    if (!/^\d+x\d+$/.test(s.puzzleSize || '')) s.puzzleSize = '2x2';
     return s;
   } catch {
     return { ...defaults };

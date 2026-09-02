@@ -21,6 +21,10 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* A class with `display` set would otherwise outrank the browser's own
+   [hidden] rule — and every "Next" button in the app relies on `hidden`. */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   height: 100%;
@@ -418,10 +422,120 @@ html, body {
 .tile-glyph { position: absolute; top: 12px; right: 16px; font-size: clamp(28px, 4.5vw, 44px); }
 .tile-name  { font-size: clamp(20px, 3.2vw, 34px); }
 
+.hub-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+.hub-group { padding: 0 clamp(14px, 2.4vw, 32px); }
+.hub-group-title {
+  margin: 14px 4px 0;
+  font-size: clamp(16px, 2.2vw, 22px);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  opacity: .6;
+}
+.hub-group .hub-grid { padding: 10px 0 8px; align-content: start; overflow: visible; flex: 0 0 auto; }
+
+/* ---------- tracing ---------- */
+
+.trace-head {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.trace-head .game-title { font-size: clamp(26px, 4.4vw, 44px); line-height: 1.1; }
+.trace-head .found-row .pip { font-size: clamp(14px, 2.2vw, 22px); }
+
+.trace-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+.tracer {
+  display: block;
+  background: var(--paper);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  overflow: visible;
+}
+.tracer .road {
+  fill: none;
+  stroke: #E9E3F4;
+  stroke-width: 15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tracer .road.active { stroke: #D9CEF0; }
+.tracer .road.done   { stroke: #E9E3F4; }
+.tracer .ink {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tracer .dots {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.2;
+  stroke-dasharray: 1 5;
+  stroke-linecap: round;
+  opacity: .55;
+}
+.tracer .start { animation: pulse 1.1s ease-in-out infinite; }
+.tracer .start-num {
+  font-size: 9px;
+  font-weight: 800;
+  fill: #fff;
+  pointer-events: none;
+  font-family: inherit;
+}
+@keyframes pulse {
+  0%, 100% { r: 7; opacity: 1; }
+  50%      { r: 10; opacity: .7; }
+}
+.tracer.done { animation: cheer-flat 600ms cubic-bezier(.3,1.6,.4,1); }
+@keyframes cheer-flat {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+.phonics-card {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 6px 18px 10px;
+  animation: scene-in 320ms ease both;
+}
+.phonics-emoji { font-size: clamp(56px, 12vmin, 110px); line-height: 1; }
+.phonics-word  { font-size: clamp(28px, 6vmin, 56px); color: var(--grape); }
+
+.count-things {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 10px;
+  padding: 4px 18px 10px;
+  max-width: 100%;
+}
+.count-thing { font-size: clamp(30px, 7vmin, 60px); line-height: 1; display: inline-block; }
+
 /* ---------- puzzle ---------- */
 
 .puzzle-stage {
-  --piece: 120px;
+  --pw: 120px;                 /* tray piece size, set from the screen in fit() */
+  --ph: 120px;
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -466,11 +580,11 @@ html, body {
   gap: 12px;
   justify-content: center;
   align-content: center;
-  max-width: min(88vw, 620px);
+  flex: 0 0 auto;              /* width is pinned by fit() to the planned rows */
 }
 .puzzle-piece {
-  width: var(--piece);
-  height: var(--piece);
+  width: var(--pw);
+  height: var(--ph);
   background-repeat: no-repeat;
   border-radius: 14px;
   box-shadow: var(--shadow);

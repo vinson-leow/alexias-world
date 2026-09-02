@@ -15,6 +15,9 @@ import { puzzleScene } from './games/puzzle.js';
 import { countScene } from './games/count.js';
 import { shapesScene } from './games/shapes.js';
 import { coloursScene } from './games/colours.js';
+import { lettersScene } from './games/letters.js';
+import { wordsScene } from './games/words.js';
+import { numbersScene } from './games/numbers.js';
 
 const ROUTES = {
   '': hubScene,
@@ -23,6 +26,9 @@ const ROUTES = {
   count: countScene,
   shapes: shapesScene,
   colours: coloursScene,
+  letters: lettersScene,
+  words: wordsScene,
+  numbers: numbersScene,
 };
 
 const app = document.getElementById('app');
