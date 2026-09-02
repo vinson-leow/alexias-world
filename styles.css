@@ -551,7 +551,7 @@ html, body {
   gap: 0;
   width: 300px;                /* real size is set from the screen in fit() */
   flex: 0 0 auto;
-  aspect-ratio: 1;
+  aspect-ratio: 16 / 9;        /* the scenes are 16:9 — mirrors SCENE_RATIO in puzzle.js */
   border-radius: 24px;
   overflow: hidden;
   box-shadow: var(--shadow), inset 0 0 0 5px var(--paper);

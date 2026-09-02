@@ -8,13 +8,26 @@
  */
 
 import { el, shuffle, pickFresh, sparkleFrom, draggable, centreOf, pick } from '../ui.js';
-import { allDesigns, artUrl } from '../cards.js';
 import { settings, save } from '../state.js';
 import { say, hush, sfx } from '../audio.js';
 import { gameShell } from '../shell.js';
 import { choiceRow } from '../parentgate.js';
 
 const PRAISE = ['That is it!', 'Yes!', 'Good!', 'Well done!'];
+
+/* Puzzle pictures are full-bleed scenes with all five characters, made so that
+   every part of the frame carries detail. The card faces were tried first and
+   failed here: on a 5x5 cut their cream backgrounds made many pieces blank
+   and indistinguishable from each other. */
+export const SCENES = [
+  { art: '01-dubai-beach-club', say: 'the beach club' },
+  { art: '02-dubai-marina',     say: 'the marina' },
+  { art: '03-dubai-dunes',      say: 'the desert' },
+  { art: '04-dubai-souk',       say: 'the market' },
+];
+export const SCENE_RATIO = 16 / 9;
+
+export function sceneUrl(name) { return `assets/scenes/web/${name}.jpg`; }
 
 /* Columns x rows. The picture is square, so anything off-square gives
    rectangular pieces, which is fine — real jigsaws are full of them. */
@@ -60,9 +73,10 @@ export function puzzleScene(go) {
     hush();
     ({ cols, rows } = sizeFor(settings.puzzleSize));
     placed = 0;
-    design = pickFresh(allDesigns(), design);
-    const url = `url("${artUrl(design.art)}")`;
-    title.textContent = design.say;
+    design = pickFresh(SCENES, design);
+    const url = `url("${sceneUrl(design.art)}")`;
+    title.textContent = `At ${design.say}`;
+    new Image().src = sceneUrl(design.art);   // warm the cache for the pieces
 
     frame.replaceChildren();
     tray.replaceChildren();
@@ -98,7 +112,7 @@ export function puzzleScene(go) {
     for (const p of shuffle(pieces)) tray.append(p);
 
     fit();
-    setTimeout(() => say(`Let us make ${design.say}. Put the pieces on the picture!`), 350);
+    setTimeout(() => say(`Everyone is at ${design.say}! Put the pieces on the picture!`), 350);
   }
 
   /* The frame takes what the screen allows and the tray gets the rest. Tray
@@ -112,14 +126,17 @@ export function puzzleScene(go) {
     if (!(W > 0) || !(H > 0)) return;
     const gap = 12;
 
-    const F = Math.floor(Math.min(W * 0.9, H * 0.52, 560));
+    // The frame is 16:9. Its width is capped by the stage width and its height
+    // by a share of the stage height, whichever bites first.
+    const F = Math.floor(Math.min(W * 0.96, H * 0.55 * SCENE_RATIO, 960));
+    const FH = Math.floor(F / SCENE_RATIO);
     frame.style.width = `${F}px`;
     const slotW = F / cols;
-    const slotH = F / rows;
+    const slotH = FH / rows;
 
     // Scale the tray pieces down until every one fits under the frame, trying
     // one to five rows and keeping the arrangement that leaves them largest.
-    const trayH = H - F - gap * 2;
+    const trayH = H - FH - gap * 2;
     const count = cols * rows;
     let best = { scale: 0, perRow: count };
     for (let r = 1; r <= 5; r++) {
@@ -167,7 +184,7 @@ export function puzzleScene(go) {
     if (placed === cols * rows) {
       setTimeout(() => celebrate({
         headline: 'You made the picture!',
-        spoken: `You made the picture! ${design.say}!`,
+        spoken: `You made the picture! Everyone at ${design.say}!`,
         onAgain: start,
       }), 500);
     } else if (placed === 1 || Math.random() < 0.4) {

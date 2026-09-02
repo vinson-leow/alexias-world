@@ -19,3 +19,6 @@ SCENE-*.md
 .claude/
 dist/
 .DS_Store
+
+# Scene masters (2688x1520, ~8MB each). The game uses assets/scenes/web/.
+assets/scenes/*.png

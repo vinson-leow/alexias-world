@@ -26,7 +26,7 @@ These are constraints, not preferences. Everything in the code follows from them
 | Game | What she does | Grown-up settings |
 |---|---|---|
 | **Memory** | Turn cards to find pairs. Matched pairs vanish. | Board 4×3 to 6×6 · look-back 1–3s · outfits |
-| **Puzzle** | Drag pieces of a picture onto its faint shadow in the frame. | 4 or 9 pieces |
+| **Puzzle** | Drag pieces of a scene — all five characters somewhere in Dubai — onto its faint shadow in the frame. | 4, 9, 16, 20 or 25 pieces |
 | **Counting** | Tap each character and hear the next number; the total is said and shown big. | — |
 | **Shapes** | Drag each shape into the hole that matches it. | — |
 | **Colours** | Find the balloon of the colour asked for. | — |

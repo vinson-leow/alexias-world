@@ -25,6 +25,7 @@ MODULES = [
 ]
 
 CARDS = sorted((ROOT / "assets/cards/web").glob("*.jpg"))
+SCENES = sorted((ROOT / "assets/scenes/web").glob("*.jpg"))
 ICON = ROOT / "assets/brand/heart-icon-256.jpg"
 
 
@@ -67,6 +68,7 @@ def html_ascii(src: str) -> str:
 
 def main() -> None:
     art = {p.stem: data_uri(p) for p in CARDS}
+    art.update({f"scene:{p.stem}": data_uri(p) for p in SCENES})
     art_map = ",\n  ".join(f'"{k}": "{v}"' for k, v in art.items())
 
     parts = []
@@ -85,6 +87,11 @@ def main() -> None:
             )
         if name == "main":
             src = src.replace("src: 'assets/brand/heart-icon-256.jpg'", "src: ICON")
+        if name == "games/puzzle":
+            src = src.replace(
+                "function sceneUrl(name) { return `assets/scenes/web/${name}.jpg`; }",
+                "function sceneUrl(name) { return ART['scene:' + name]; }",
+            )
 
         parts.append(f"/* ---- {name}.js ---- */\n{strip_module_syntax(src)}")
 
