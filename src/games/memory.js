@@ -1,25 +1,25 @@
 /* Memory match.
  *
  * The rules that shape every decision here:
- *   - There is no timer, no score, no move counter and no way to lose.
+ *   - There is no score, no miss limit and no way to lose.
  *   - A wrong pair is not a mistake; the cards simply turn back over.
  *   - Every card says its own name aloud, because the player cannot read.
  *   - Cards never move. A child who remembers "Bunny was in the corner" is right.
  */
 
-import { el, shuffle, pick, sparkleFrom, fitGrid } from './ui.js';
-import { pickDesigns, artUrl, preload, sizeFor, LOGO_URL } from './cards.js';
-import { settings, lookBackMs, addStar, save } from './state.js';
-import { say, hush, sfx } from './audio.js';
-import { openParentGate } from './parentgate.js';
+import { el, shuffle, pick, sparkleFrom, fitGrid } from '../ui.js';
+import { pickDesigns, artUrl, preload, sizeFor, SIZES, LOGO_URL } from '../cards.js';
+import { settings, lookBackMs, save, setCardCount, SPEEDS } from '../state.js';
+import { say, hush, sfx } from '../audio.js';
+import { gameShell, pipRow } from '../shell.js';
+import { choiceRow } from '../parentgate.js';
 
 const PRAISE = ['Yes! You found them!', 'A pair!', 'Well done!', 'You did it!', 'That is a match!'];
 const NUDGE  = ['Try again!', 'Have another look.', 'Keep looking!'];
 
-const FLIP_MS = 300;      // matches the card's CSS transition
 const VANISH_MS = 600;    // matched pair fades out and is gone
 
-export function startGame(root) {
+export function memoryScene(go) {
   let cards = [];          // { design, node, faceUp, matched }
   let firstPick = null;
   let found = 0;
@@ -31,6 +31,7 @@ export function startGame(root) {
   let nudgeCount = 0;
   let startedAt = null;    // the first card turned starts the clock, not the deal
   let clockTimer = null;
+  let pips = pipRow(0);
 
   const clockText = (ms) => {
     const secs = Math.floor(ms / 1000);
@@ -47,11 +48,7 @@ export function startGame(root) {
       timeCount.textContent = clockText(performance.now() - startedAt);
     }, 250);
   }
-
-  function stopClock() {
-    clearInterval(clockTimer);
-    clockTimer = null;
-  }
+  function stopClock() { clearInterval(clockTimer); clockTimer = null; }
 
   /* A turned pair always owes a resolution. Keeping it in `pending` — rather
      than only inside a setTimeout — means it can be forced through if the timer
@@ -64,7 +61,6 @@ export function startGame(root) {
     lockedAt = performance.now();
     resolveTimer = setTimeout(runPending, ms);
   }
-
   function runPending() {
     if (!pending) return;
     clearTimeout(resolveTimer);
@@ -74,32 +70,44 @@ export function startGame(root) {
   }
 
   const board = el('div', { class: 'board' });
-  const foundRow = el('div', { class: 'found-row', 'aria-label': 'Pairs found' });
+  const middle = el('div', { class: 'found-wrap' });
   const moveCount = el('span', { class: 'move-count' }, '0');
   const timeCount = el('span', { class: 'move-count' }, '0:00');
 
-  const scene = el('div', { class: 'scene' },
-    el('div', { class: 'topbar' },
-      el('button', {
-        class: 'chip', 'aria-label': 'Grown-ups',
-        onclick: () => { sfx.tap(); openParentGate(scene, { onChange: deal }); },
-      }, '⚙️'),
-      foundRow,
-      el('button', {
-        class: 'chip', 'aria-label': 'New game',
-        onclick: () => { sfx.tap(); say('New game!'); deal(); },
-      }, '🔄'),
-    ),
-    board,
-    // A tally, not a score: nothing counts down, nothing runs out, and no
-    // number here can end the game.
-    el('div', { class: 'bottombar' },
-      el('span', { class: 'move-label' }, 'Turns'),
-      moveCount,
-      el('span', { class: 'move-label' }, 'Time'),
-      timeCount,
-    ),
+  const { scene, body, footer, celebrate } = gameShell(go, {
+    middle,
+    onNew: deal,
+    sections: settingsRows,
+  });
+  body.append(board);
+  footer.append(
+    el('span', { class: 'move-label' }, 'Turns'), moveCount,
+    el('span', { class: 'move-label' }, 'Time'), timeCount,
   );
+
+  /* ---------- grown-up rows ---------- */
+
+  function settingsRows() {
+    return [
+      el('p', {}, 'Board size. Start small and move up when she finds it easy.'),
+      choiceRow(
+        SIZES.map((s) => ({ label: `${s.label}  ·  ${s.cards / 2} pairs`, cards: s.cards })),
+        (o) => settings.cardCount === o.cards,
+        (o) => setCardCount(o.cards),
+      ),
+      el('p', {}, 'How long a mismatched pair stays face up. Tapping another card turns them back straight away regardless.'),
+      choiceRow(
+        Object.entries(SPEEDS).map(([key, s]) => ({ label: `${s.label} · ${(s.lookBack / 1000).toFixed(1)}s`, key })),
+        (o) => settings.speed === o.key,
+        (o) => { settings.speed = o.key; save(); },
+      ),
+      choiceRow(
+        [{ label: '👕 Everyday outfits', alt: false }, { label: '👕 Mix outfits up', alt: true }],
+        (o) => settings.altOutfits === o.alt,
+        (o) => { settings.altOutfits = o.alt; save(); },
+      ),
+    ];
+  }
 
   /* ---------- dealing ---------- */
 
@@ -119,6 +127,8 @@ export function startGame(root) {
     const designs = pickDesigns(settings.cardCount, settings.altOutfits);
     preload(designs);
     pairsTotal = designs.length;
+    pips = pipRow(pairsTotal);
+    middle.replaceChildren(pips.row);
 
     const deck = shuffle([...designs, ...designs]);
     board.replaceChildren();
@@ -127,28 +137,14 @@ export function startGame(root) {
       face.style.backgroundImage = `url("${artUrl(design.art)}")`;
       const back = el('div', { class: 'face back' });
       back.style.backgroundImage = `url("${LOGO_URL}")`;
-      const node = el('button', {
-        class: 'card',
-        'aria-label': 'Hidden card',
-        onclick: () => tap(i),
-      }, back, face);
+      const node = el('button', { class: 'card', 'aria-label': 'Hidden card', onclick: () => tap(i) }, back, face);
       return { design, node, faceUp: false, matched: false };
     });
     for (const c of cards) board.append(c.node);
 
-    paintFoundRow();
     layout();
-    setTimeout(() => say(`Find the pairs! Tap a card.`), 350);
+    setTimeout(() => say('Find the pairs! Tap a card.'), 350);
   }
-
-  function paintFoundRow() {
-    foundRow.replaceChildren(
-      ...Array.from({ length: pairsTotal }, (_, i) =>
-        el('span', { class: `pip${i < found ? ' lit' : ''}` }, i < found ? '⭐' : '·')),
-    );
-  }
-
-  /* ---------- layout ---------- */
 
   function layout() {
     if (!cards.length) return;
@@ -168,8 +164,7 @@ export function startGame(root) {
 
     // A pair already turned is settled immediately rather than blocking the
     // tap. Waiting out a timer is where a small child gives up and starts
-    // jabbing the screen, so the board never refuses a tap: the old pair drops
-    // away and this tap begins the next turn.
+    // jabbing the screen, so the board never refuses a tap.
     if (pending) runPending();
 
     startClock();
@@ -182,16 +177,13 @@ export function startGame(root) {
     const second = card;
     const first = firstPick;
     firstPick = null;
-
     moves += 1;
     moveCount.textContent = String(moves);
 
     if (first.design.id === second.design.id) {
-      // A match resolves faster than a miss — there is nothing to memorise, so
-      // get to the celebration. The floor keeps the pair on screen long enough
-      // to see that it matched even at the quickest speed.
-      const pause = Math.max(650, Math.min(1200, lookBackMs() * 0.5));
-      schedule(() => onMatch(first, second), pause);
+      // A match resolves faster than a miss — nothing to memorise, so get to
+      // the celebration. The floor keeps the pair visible at the quickest speed.
+      schedule(() => onMatch(first, second), Math.max(650, Math.min(1200, lookBackMs() * 0.5)));
     } else {
       schedule(() => onMiss(first, second), lookBackMs());
     }
@@ -202,7 +194,6 @@ export function startGame(root) {
     card.node.classList.add('up');
     card.node.setAttribute('aria-label', card.design.say);
   }
-
   function turnDown(card) {
     card.faceUp = false;
     card.node.classList.remove('up');
@@ -216,15 +207,11 @@ export function startGame(root) {
     sparkleFrom(a.node);
     sparkleFrom(b.node);
     say(`${pick(PRAISE)} ${a.design.say}.`);
-    paintFoundRow();
-
-    // Matched pairs vanish, leaving their gap. The grid never reflows, so the
-    // cards a child has already learned the position of stay put.
+    pips.paint(found);
     for (const c of [a, b]) {
       c.node.classList.add('matched');
-      setTimeout(() => { c.node.classList.add('gone'); }, VANISH_MS);
+      setTimeout(() => c.node.classList.add('gone'), VANISH_MS);
     }
-
     if (found === pairsTotal) setTimeout(win, VANISH_MS + 300);
   }
 
@@ -232,66 +219,41 @@ export function startGame(root) {
     sfx.nomatch();
     turnDown(a);
     turnDown(b);
-    // Only nudge occasionally — a voice on every single miss becomes nagging.
     nudgeCount += 1;
-    if (nudgeCount % 3 === 1) say(pick(NUDGE));
+    if (nudgeCount % 3 === 1) say(pick(NUDGE));   // a voice on every miss becomes nagging
   }
 
   function win() {
     stopClock();
     const took = startedAt === null ? 0 : performance.now() - startedAt;
-    sfx.win();
-    settings.rounds += 1;
-    const stars = addStar();
-    save();
-    say('You found them all! Hooray!');
-
-    const again = el('div', { class: 'win' },
-      el('div', { class: 'win-glyph' }, '🎉'),
-      el('div', { class: 'win-word' }, 'You found them all!'),
-      el('div', { class: 'win-stars' }, '⭐', el('span', {}, String(stars))),
-      el('div', { class: 'win-turns' }, `${moves} turns  ·  ${clockText(took)}`),
-      el('button', {
-        class: 'big-button',
-        'aria-label': 'Play again',
-        onclick: () => { sfx.tap(); say('Again!'); again.remove(); deal(); },
-      }, el('span', { class: 'glyph' }, '🔁'), el('span', { class: 'word' }, 'Again')),
-    );
-    scene.append(again);
-  }
-
-  /* ---------- go ---------- */
-
-  root.replaceChildren(scene);
-  deal();
-
-  /* Re-fit whenever the board's box changes — first paint, rotation, the iPad
-     keyboard, anything. A plain resize listener misses the first pass, when the
-     board has been inserted but has not been given its height yet. Setting the
-     column template cannot change the board's own size, so this cannot loop. */
-  if (window.ResizeObserver) {
-    new ResizeObserver(layout).observe(board);
-  } else {
-    let resizeTimer = null;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(layout, 120);
+    celebrate({
+      headline: 'You found them all!',
+      spoken: 'You found them all! Hooray!',
+      detail: `${moves} turns  ·  ${clockText(took)}`,
+      onAgain: deal,
     });
   }
 
-  // Coming back to the app settles any pair left hanging while it was away.
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) runPending();
-  });
+  /* ---------- lifecycle ---------- */
 
-  // Backstop for anything the above misses: a pair can never stay owed for
-  // longer than its own look-back plus a margin. Without this the board can
-  // only be freed by an adult finding the reset button.
-  setInterval(() => {
+  const ro = window.ResizeObserver ? new ResizeObserver(layout) : null;
+  ro?.observe(board);
+  const onVisible = () => { if (!document.hidden) runPending(); };
+  document.addEventListener('visibilitychange', onVisible);
+  // Backstop: a pair can never stay owed longer than its look-back plus a margin.
+  const watchdog = setInterval(() => {
     if (pending && performance.now() - lockedAt > lookBackMs() + 2000) runPending();
   }, 1000);
-  // The board has no height until it is in the document.
-  requestAnimationFrame(layout);
 
-  return { deal };
+  scene.__layout = layout;
+  scene.__cleanup = () => {
+    ro?.disconnect();
+    document.removeEventListener('visibilitychange', onVisible);
+    clearInterval(watchdog);
+    clearTimeout(resolveTimer);
+    stopClock();
+  };
+
+  deal();
+  return scene;
 }

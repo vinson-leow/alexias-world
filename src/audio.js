@@ -77,6 +77,7 @@ const N = { C: 523.25, D: 587.33, E: 659.25, F: 698.46, G: 783.99, A: 880, C2: 1
 
 export const sfx = {
   flip()    { tone(N.E, 0, 0.1, 'triangle', 0.4); },
+  pick()    { tone(N.G, 0, 0.1, 'sine', 0.45); tone(N.C2, 0.06, 0.14, 'sine', 0.35); },
   match()   { [N.C, N.E, N.G, N.C2].forEach((n, i) => tone(n, i * 0.08, 0.3, 'triangle', 0.45)); },
   nomatch() { tone(N.D, 0, 0.14, 'sine', 0.22); tone(N.C, 0.09, 0.18, 'sine', 0.18); },
   win()     { [N.C, N.E, N.G, N.C2, N.E2, N.G2].forEach((n, i) => tone(n, i * 0.1, 0.45, 'triangle', 0.5)); },

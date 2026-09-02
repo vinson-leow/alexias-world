@@ -1,6 +1,7 @@
-# Alexia's World — Memory Match
+# Alexia's World
 
-A memory-match game for 2–4 year olds, starring Zane, Alexia, Bunny and Grumblor.
+A hub of short, voice-led games for 2–4 year olds, starring Zane, Alexia,
+Bunny, Grumblor and Oliver.
 
 Play it: **https://vinson-leow.github.io/alexias-world/**
 
@@ -8,34 +9,35 @@ Play it: **https://vinson-leow.github.io/alexias-world/**
 
 These are constraints, not preferences. Everything in the code follows from them.
 
-- **No way to lose.** No timer, no score, no move counter, no miss limit.
-  A wrong pair is not a mistake — the cards simply turn back over.
-- **No reading required.** Every card says its own name aloud. Words on screen
-  are decoration for the grown-up, never instructions for the child.
-- **Cards never move.** A child who remembers "Bunny was in the corner" is
-  right. Matched pairs vanish and leave their gap; the grid does not reflow.
-- **Nothing tappable is small.** Cards size themselves to fill the screen.
-- **Difficulty follows the child, not a menu.** A grown-up adds a pair at a
-  time, 8 cards up to 20, behind a gate a toddler will not pass by accident.
+- **No way to lose.** No score that counts down, no miss limit, no fail state.
+  A wrong tap wobbles or springs back and nothing else happens.
+- **No reading required.** Every card, shape and colour says its own name
+  aloud. Words on screen are decoration for the grown-up, never instructions
+  for the child.
+- **Nothing tappable is small.** Cards, pieces and balloons size themselves to
+  fill the screen.
+- **A wrong answer teaches.** The wrong balloon is named ("That is blue —
+  find red!"); a shape in the wrong hole shows the hole it should be in.
+- **Difficulty follows the child, not a menu.** Grown-ups adjust it behind a
+  gate a toddler will not pass by accident.
 
-## Playing
+## The games
 
-Tap the heart to start, then tap cards to find pairs.
+| Game | What she does | Grown-up settings |
+|---|---|---|
+| **Memory** | Turn cards to find pairs. Matched pairs vanish. | Board 4×3 to 6×6 · look-back 1–3s · outfits |
+| **Puzzle** | Drag pieces of a picture onto its faint shadow in the frame. | 4 or 9 pieces |
+| **Counting** | Tap each character and hear the next number; the total is said and shown big. | — |
+| **Shapes** | Drag each shape into the hole that matches it. | — |
+| **Colours** | Find the balloon of the colour asked for. | — |
 
-**Grown-up settings** — tap ⚙️ and answer the number it asks for:
-
-| Setting | Options |
-|---|---|
-| Cards | 8 to 20, two at a time (4 to 10 pairs) |
-| Speed | Gentle 3s · Normal 2s · Quick 1s — how long a mismatched pair stays face up |
-| Narration | On / off |
-| Outfits | Everyday or a second look for each character |
+Tap **⚙️** and answer the number it asks for; narration and volume live there too.
 
 ## Running it locally
 
-No build step and no dependencies — it is plain ES modules and CSS. It does
-need to be served over HTTP rather than opened as a file, because ES modules
-are blocked on `file://`:
+No build step and no dependencies — plain ES modules and CSS. It has to be
+served over HTTP rather than opened as a file, because ES modules are blocked
+on `file://`:
 
 ```bash
 python3 -m http.server 4321
@@ -45,31 +47,34 @@ Then open <http://localhost:4321>.
 
 ## Making a sendable copy
 
-`build-standalone.py` flattens the whole game — code, styles and all card art —
-into one self-contained HTML file that works offline with no server:
+`build-standalone.py` flattens everything — code, styles, all card art and the
+logo — into one self-contained HTML file that works offline with no server:
 
 ```bash
 python3 build-standalone.py
 ```
 
-The output lands in `dist/`. It is pure ASCII by design: the file gets opened in
-places that may not declare a charset, so every emoji is escaped rather than
+The output lands in `dist/`. It is pure ASCII by design: the file gets opened
+in places that may not declare a charset, so every emoji is escaped rather than
 left to chance.
 
 ## Layout
 
 ```
 index.html          entry point
-styles.css          all styling; the flip is a 3D rotateY, 300ms
+styles.css          all styling
 src/
-  main.js           tap-to-start, then hands off to the game
-  game.js           dealing, matching, the resolution timers
-  cards.js          the deck, and the order it grows in
+  main.js           splash, hash router, scene lifecycle
+  hub.js            the game grid
+  shell.js          chrome every game shares: top bar, celebration, pips
+  games/            one module per game
+  cards.js          the cast, their outfits, the pairings, board sizes
   state.js          settings and stars, persisted to localStorage
   parentgate.js     grown-up settings behind a number gate
   audio.js          narration and chimes — no audio files, all generated
-  ui.js             DOM helpers and the grid-fitting maths
-assets/cards/web/   the 14 card faces, 512px
+  ui.js             DOM helpers, drag, grid-fitting maths
+assets/cards/web/   the card faces, 512px
+assets/brand/       the heart logo
 ```
 
 Full-resolution art and the character bible are kept out of this repo

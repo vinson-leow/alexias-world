@@ -47,6 +47,89 @@ export function shuffle(list) {
 
 export function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
 
+/** Pick randomly but never repeat the previous value — stops "again!" feeling stale. */
+export function pickFresh(list, previous) {
+  if (list.length < 2) return list[0];
+  let next = pick(list);
+  while (next === previous) next = pick(list);
+  return next;
+}
+
+/**
+ * Make an element draggable with a finger or mouse. On release, `onDrop` gets
+ * the element's centre and decides whether the drop is accepted; if not, the
+ * element springs back to where it started.
+ *
+ * Pointer events cover touch and mouse in one path, and `setPointerCapture`
+ * means a fast toddler swipe that leaves the element still ends cleanly.
+ */
+export function draggable(node, { onDrop, onStart } = {}) {
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let homeX = 0;         // the element's centre when the drag began
+  let homeY = 0;
+  let lastX = 0;
+  let lastY = 0;
+  node.style.touchAction = 'none';
+
+  node.addEventListener('pointerdown', (e) => {
+    if (node.dataset.locked) return;
+    // Grabbing a piece mid-spring-back cancels the spring; otherwise the
+    // transition it left behind would smear the next drag.
+    node.classList.remove('springing');
+    node.style.transform = '';
+    const r = node.getBoundingClientRect();
+    homeX = r.left + r.width / 2;
+    homeY = r.top + r.height / 2;
+    dragging = true;
+    startX = lastX = e.clientX;
+    startY = lastY = e.clientY;
+    try { node.setPointerCapture(e.pointerId); } catch { /* not all pointers can be captured */ }
+    node.classList.add('dragging');
+    onStart?.(node);
+  });
+
+  node.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    node.style.transform = `translate(${lastX - startX}px, ${lastY - startY}px)`;
+  });
+
+  const end = () => {
+    if (!dragging) return;
+    dragging = false;
+    node.classList.remove('dragging');
+    // Where the piece IS is derived from the pointer, not read back from the
+    // element — so an in-flight transition can never distort the drop.
+    const accepted = onDrop?.({ x: homeX + (lastX - startX), y: homeY + (lastY - startY), node });
+    if (!accepted) {
+      node.classList.add('springing');
+      node.style.transform = '';
+      setTimeout(() => node.classList.remove('springing'), 280);
+    }
+  };
+  node.addEventListener('pointerup', end);
+  node.addEventListener('pointercancel', end);
+}
+
+/** Centre of an element in viewport coordinates. */
+export function centreOf(node) {
+  const r = node.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };
+}
+
+/** A big, gentle wobble — the universal "not that one" with no sting in it. */
+export function wobble(node) {
+  node.classList.remove('wobble');
+  void node.offsetWidth;
+  node.classList.add('wobble');
+}
+
+const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+export function numberWord(n) { return NUMBER_WORDS[n] ?? String(n); }
+
 /**
  * Fit a fixed grid to the space available. The rectangle is given — 4x3, 4x4,
  * 5x4 — so the only choice is which way round it sits. A 4x3 board turned on

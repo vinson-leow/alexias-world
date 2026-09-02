@@ -16,7 +16,11 @@ ROOT = pathlib.Path(__file__).parent
 OUT = ROOT / "dist" / "alexias-world-memory.html"
 
 # Dependency order — cards has no imports, main depends on everything.
-MODULES = ["cards", "state", "audio", "ui", "parentgate", "game", "main"]
+MODULES = [
+    "cards", "state", "audio", "ui", "parentgate", "shell", "hub",
+    "games/memory", "games/puzzle", "games/count", "games/shapes", "games/colours",
+    "main",
+]
 
 CARDS = sorted((ROOT / "assets/cards/web").glob("*.jpg"))
 ICON = ROOT / "assets/brand/heart-icon-256.jpg"

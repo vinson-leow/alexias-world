@@ -104,6 +104,17 @@ export function pickDesigns(cardCount, mixOutfits) {
   return out;   // fewer than asked for only if the art runs out entirely
 }
 
+/** Every character with their signature look — for games that count or scatter them. */
+export function characters() {
+  return CHARACTERS.map((c) => ({ id: c.id, say: c.say, art: c.looks[0] }));
+}
+
+/** Every picture in the set, solo looks and pairs alike — for the jigsaw. */
+export function allDesigns() {
+  const solos = CHARACTERS.flatMap((c) => c.looks.map((art) => ({ say: c.say, art })));
+  return [...solos, ...PAIRS.map((p) => ({ say: p.say, art: p.art }))];
+}
+
 /** Warm the browser cache so the first flip of a round is never a blank card. */
 export function preload(designs) {
   for (const d of designs) new Image().src = artUrl(d.art);

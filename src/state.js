@@ -19,6 +19,7 @@ const defaults = {
   narration: true,
   volume: 1,
   altOutfits: false,
+  puzzlePieces: 2,        // 2 -> a 2x2 puzzle, 3 -> 3x3
   stars: 0,
   rounds: 0,
 };
