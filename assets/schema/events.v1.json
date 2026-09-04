@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vinson-leow.github.io/alexias-world/assets/schema/events.v1.json",
+  "title": "Alexia's World event (events.v1)",
+  "description": "One thing a player did. See EVENTS.md for the meaning of each type. Additional fields per type are allowed.",
+  "type": "object",
+  "required": ["t", "type"],
+  "properties": {
+    "t":    { "type": "integer", "description": "Unix time in milliseconds" },
+    "who":  { "type": ["string", "null"], "description": "Profile id: alexia, zane, oliver, or parent (a grown-up testing)" },
+    "s":    { "type": ["string", "null"], "description": "Session id, one per app launch" },
+    "type": {
+      "type": "string",
+      "enum": ["session_start", "game_start", "game_end", "game_leave", "flip", "match", "miss", "drop", "count_tap", "round_done", "pick", "stroke", "glyph_done", "word_done", "test"]
+    },
+    "game": {
+      "type": ["string", "null"],
+      "enum": ["memory", "puzzle", "count", "shapes", "colours", "letters", "words", "numbers", null]
+    },
+    "dt": {
+      "type": ["integer", "null"],
+      "description": "Milliseconds since the player's previous action in this game; null on the first. Gaps over 60000 should be treated as idle."
+    },
+    "duration": { "type": "integer", "description": "game_end / game_leave: ms since game_start" },
+    "correct":  { "type": "boolean", "description": "Present on any action that could be right or wrong" },
+    "config":   { "type": "object", "description": "game_start: the settings that shaped the game" },
+    "card":     { "type": "string" },
+    "pair":     { "type": "string" },
+    "piece":    { "type": "integer" },
+    "shape":    { "type": "string" },
+    "n":        { "type": "integer" },
+    "total":    { "type": "integer" },
+    "colour":   { "type": "string" },
+    "target":   { "type": "string" },
+    "ch":       { "type": "string", "description": "Tracing: the character" },
+    "strokes":  { "type": "integer" },
+    "ms":       { "type": "integer", "description": "Tracing: time spent on this glyph or word" },
+    "word":     { "type": "string" },
+    "note":     { "type": "string" }
+  },
+  "additionalProperties": true
+}

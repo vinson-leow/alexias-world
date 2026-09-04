@@ -12,6 +12,7 @@ import { settings, save } from '../state.js';
 import { say, hush, sfx } from '../audio.js';
 import { gameShell } from '../shell.js';
 import { choiceRow } from '../parentgate.js';
+import { beginGame, action } from '../log.js';
 
 const PRAISE = ['That is it!', 'Yes!', 'Good!', 'Well done!'];
 
@@ -77,6 +78,7 @@ export function puzzleScene(go) {
     const url = `url("${sceneUrl(design.art)}")`;
     title.textContent = `At ${design.say}`;
     new Image().src = sceneUrl(design.art);   // warm the cache for the pieces
+    beginGame('puzzle', { pieces: cols * rows, grid: settings.puzzleSize, scene: design.art });
 
     frame.replaceChildren();
     tray.replaceChildren();
@@ -168,10 +170,12 @@ export function puzzleScene(go) {
     // Generous: within about half a slot of the right one counts.
     if (!best || bestDist > Math.min(best.c.w, best.c.h) * 0.55) return false;
     if (best.slot.dataset.index !== piece.dataset.index || best.slot.dataset.filled) {
+      action('drop', { correct: false, piece: Number(piece.dataset.index) });
       sfx.nomatch();
       return false;
     }
 
+    action('drop', { correct: true, piece: Number(piece.dataset.index) });
     best.slot.dataset.filled = '1';
     best.slot.append(piece);
     piece.style.transform = '';
@@ -185,6 +189,7 @@ export function puzzleScene(go) {
       setTimeout(() => celebrate({
         headline: 'You made the picture!',
         spoken: `You made the picture! Everyone at ${design.say}!`,
+        stats: { pieces: cols * rows, scene: design.art },
         onAgain: start,
       }), 500);
     } else if (placed === 1 || Math.random() < 0.4) {

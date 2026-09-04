@@ -10,6 +10,7 @@ import { settings, save } from '../state.js';
 import { say, hush, sfx } from '../audio.js';
 import { gameShell, pipRow } from '../shell.js';
 import { choiceRow } from '../parentgate.js';
+import { beginGame, action } from '../log.js';
 
 const STAR_EVERY = 5;
 
@@ -18,6 +19,8 @@ export function numbersScene(go) {
   let n = 1;
   let thing = null;
   let doneThisStar = 0;
+  let glyphStartedAt = 0;
+  let strokesDone = 0;
 
   const title = el('span', { class: 'game-title' }, '1');
   const area = el('div', { class: 'trace-area' });
@@ -48,11 +51,14 @@ export function numbersScene(go) {
     next.hidden = true;
     thing = pickFresh(COUNTABLES, thing);
     title.textContent = String(n);
+    if (doneThisStar === 0) beginGame('numbers', { max: settings.numbersMax, from: n });
+    glyphStartedAt = Date.now();
+    strokesDone = 0;
 
     tracer = createTracer({
       cells: cells(String(n)),
       color: 'var(--sky)',
-      onStroke: () => sfx.pick(),
+      onStroke: () => { strokesDone += 1; sfx.pick(); action('stroke', { ch: String(n) }); },
       onDone: finished,
     });
     area.replaceChildren(tracer.svg);
@@ -75,6 +81,7 @@ export function numbersScene(go) {
   }
 
   function finished() {
+    action('glyph_done', { ch: String(n), strokes: strokesDone, ms: Date.now() - glyphStartedAt, correct: true });
     sfx.match();
     sparkleFrom(tracer.svg);
     // The things bounce in one after another as they are counted aloud.
@@ -88,6 +95,7 @@ export function numbersScene(go) {
       setTimeout(() => celebrate({
         headline: 'Five numbers written!',
         spoken: 'Five numbers! Hooray!',
+        stats: { numbers: STAR_EVERY, upTo: n, max: settings.numbersMax },
         onAgain: () => { n = n >= settings.numbersMax ? 1 : n + 1; pips.paint(0); start(); },
       }), 2400);
     } else {

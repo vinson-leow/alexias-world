@@ -11,6 +11,7 @@ import { settings, save } from '../state.js';
 import { say, hush, sfx } from '../audio.js';
 import { gameShell, pipRow } from '../shell.js';
 import { choiceRow } from '../parentgate.js';
+import { beginGame, action } from '../log.js';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const STAR_EVERY = 5;
@@ -20,6 +21,8 @@ export function lettersScene(go) {
   let letter = 'A';
   let lower = false;
   let doneThisStar = 0;
+  let glyphStartedAt = 0;
+  let strokesDone = 0;
 
   const title = el('span', { class: 'game-title' }, 'A');
   const area = el('div', { class: 'trace-area' });
@@ -55,11 +58,15 @@ export function lettersScene(go) {
     lower = settings.traceCase === 'lower' || (settings.traceCase === 'both' && settings.traceLetter % 2 === 1);
     const ch = lower ? letter.toLowerCase() : letter;
     title.textContent = `${letter} ${letter.toLowerCase()}`;
+    // A "game" here is one run of five letters to a star.
+    if (doneThisStar === 0) beginGame('letters', { case: settings.traceCase, from: letter });
+    glyphStartedAt = Date.now();
+    strokesDone = 0;
 
     tracer = createTracer({
       cells: cells(ch),
       color: 'var(--berry)',
-      onStroke: () => sfx.pick(),
+      onStroke: () => { strokesDone += 1; sfx.pick(); action('stroke', { ch }); },
       onDone: finished,
     });
     area.replaceChildren(tracer.svg);
@@ -79,6 +86,7 @@ export function lettersScene(go) {
 
   function finished() {
     const p = PHONICS[letter];
+    action('glyph_done', { ch: lower ? letter.toLowerCase() : letter, strokes: strokesDone, ms: Date.now() - glyphStartedAt, correct: true });
     sfx.match();
     sparkleFrom(tracer.svg);
     card.replaceChildren(
@@ -95,6 +103,7 @@ export function lettersScene(go) {
       setTimeout(() => celebrate({
         headline: 'Five letters traced!',
         spoken: 'Five letters! What a writer!',
+        stats: { letters: STAR_EVERY, upTo: letter, case: settings.traceCase },
         onAgain: () => { settings.traceLetter = (settings.traceLetter + 1) % ALPHABET.length; save(); pips.paint(0); start(); },
       }), 2600);
     } else {

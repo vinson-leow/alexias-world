@@ -7,6 +7,7 @@
 import { el, shuffle, pick, sparkleFrom, draggable, centreOf, wobble } from '../ui.js';
 import { say, hush, sfx } from '../audio.js';
 import { gameShell, pipRow } from '../shell.js';
+import { beginGame, action } from '../log.js';
 
 const SHAPES = [
   { id: 'circle',   say: 'Circle',   color: '#FF6B6B' },
@@ -36,6 +37,7 @@ export function shapesScene(go) {
   function startGame() {
     round = 0;
     pips.paint(0);
+    beginGame('shapes', { rounds: ROUNDS, perRound: PER_ROUND });
     startRound();
   }
 
@@ -81,11 +83,13 @@ export function shapesScene(go) {
     }
     if (!best || bestDist > best.c.w * 0.6) return false;
     if (best.hole.dataset.shape !== piece.dataset.shape || best.hole.dataset.filled) {
+      action('drop', { correct: false, shape: piece.dataset.shape, hole: best.hole.dataset.shape });
       sfx.nomatch();
       wobble(best.hole);
       return false;
     }
 
+    action('drop', { correct: true, shape: piece.dataset.shape });
     best.hole.dataset.filled = '1';
     best.hole.append(piece);
     piece.style.transform = '';
@@ -103,6 +107,7 @@ export function shapesScene(go) {
         setTimeout(() => celebrate({
           headline: 'All the shapes!',
           spoken: 'You sorted all the shapes! Hooray!',
+          stats: { rounds: ROUNDS, shapes: ROUNDS * PER_ROUND },
           onAgain: startGame,
         }), 700);
       } else {

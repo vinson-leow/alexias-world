@@ -9,6 +9,7 @@
 import { el, shuffle, pickFresh, sparkleFrom, wobble } from '../ui.js';
 import { say, hush, sfx } from '../audio.js';
 import { gameShell, pipRow } from '../shell.js';
+import { beginGame, action } from '../log.js';
 
 const COLOURS = [
   { id: 'red',    say: 'Red',    hex: '#FF5E5E' },
@@ -40,6 +41,7 @@ export function coloursScene(go) {
   function startGame() {
     round = 0;
     pips.paint(0);
+    beginGame('colours', { rounds: ROUNDS });
     startRound(true);
   }
 
@@ -67,11 +69,13 @@ export function coloursScene(go) {
   function choose(c, balloon) {
     if (busy) return;
     if (c.id !== target.id) {
+      action('pick', { correct: false, colour: c.id, target: target.id });
       sfx.nomatch();
       wobble(balloon);
       say(`That is ${c.say}. Find ${target.say}!`);
       return;
     }
+    action('pick', { correct: true, colour: c.id, target: target.id });
     busy = true;
     balloon.classList.add('pop');
     sfx.match();
@@ -84,6 +88,7 @@ export function coloursScene(go) {
       setTimeout(() => celebrate({
         headline: 'You know your colours!',
         spoken: 'You know your colours! Hooray!',
+        stats: { rounds: ROUNDS },
         onAgain: startGame,
       }), 1200);
     } else {

@@ -9,6 +9,7 @@ import { cells, WORDS } from '../tracing/glyphs.js';
 import { createTracer } from '../tracing/tracer.js';
 import { say, hush, sfx } from '../audio.js';
 import { gameShell, pipRow } from '../shell.js';
+import { beginGame, action } from '../log.js';
 
 const STAR_EVERY = 3;
 
@@ -16,6 +17,7 @@ export function wordsScene(go) {
   let tracer = null;
   let entry = null;
   let doneThisStar = 0;
+  let wordStartedAt = 0;
 
   const title = el('span', { class: 'game-title' }, 'Words');
   const area = el('div', { class: 'trace-area' });
@@ -39,12 +41,14 @@ export function wordsScene(go) {
     card.hidden = true;
     entry = pickFresh(WORDS, entry);
     title.textContent = entry.word;
+    if (doneThisStar === 0) beginGame('words', { starEvery: STAR_EVERY });
+    wordStartedAt = Date.now();
 
     tracer = createTracer({
       cells: cells(entry.word),
       color: 'var(--grape)',
-      onStroke: () => sfx.pick(),
-      onCell: (i) => say(entry.word[i].toUpperCase()),
+      onStroke: () => { sfx.pick(); action('stroke', { word: entry.word }); },
+      onCell: (i) => { say(entry.word[i].toUpperCase()); action('glyph_done', { ch: entry.word[i], word: entry.word, correct: true }); },
       onDone: finished,
     });
     area.replaceChildren(tracer.svg);
@@ -63,6 +67,7 @@ export function wordsScene(go) {
   }
 
   function finished() {
+    action('word_done', { word: entry.word, ms: Date.now() - wordStartedAt, correct: true });
     sfx.match();
     sparkleFrom(tracer.svg);
     card.replaceChildren(
@@ -79,6 +84,7 @@ export function wordsScene(go) {
       setTimeout(() => celebrate({
         headline: 'Three words written!',
         spoken: 'Three whole words! Hooray!',
+        stats: { words: STAR_EVERY },
         onAgain: () => { pips.paint(0); start(); },
       }), 2600);
     } else {

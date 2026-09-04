@@ -23,6 +23,8 @@ const defaults = {
   traceCase: 'upper',     // 'upper' | 'lower' | 'both'
   traceLetter: 0,         // index into the alphabet, so she picks up where she left off
   numbersMax: 10,         // number tracing goes 1..10 or 1..20
+  kids: ['alexia'],       // child profiles shown on the who's-playing screen
+  syncUrl: '',            // optional webhook; empty means nothing leaves the device
   stars: 0,
   rounds: 0,
 };
@@ -38,6 +40,7 @@ function load() {
     // Earlier builds stored the puzzle as a single number (2 or 3).
     if (typeof s.puzzlePieces === 'number') { s.puzzleSize = `${s.puzzlePieces}x${s.puzzlePieces}`; delete s.puzzlePieces; }
     if (!/^\d+x\d+$/.test(s.puzzleSize || '')) s.puzzleSize = '2x2';
+    if (!Array.isArray(s.kids) || !s.kids.length) s.kids = ['alexia'];
     return s;
   } catch {
     return { ...defaults };

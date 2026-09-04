@@ -33,6 +33,29 @@ These are constraints, not preferences. Everything in the code follows from them
 
 Tap **⚙️** and answer the number it asks for; narration and volume live there too.
 
+## Who's playing, and the parent dashboard
+
+The first screen asks who is playing. Children get big tiles with their own
+picture; **Grown-up (testing)** is small and plain. Every event that follows is
+tagged with that choice, so a parent trying things out never pollutes the
+child's record.
+
+Everything a player does — every tap, drop, flip and stroke — is logged with
+*who*, *which game*, *whether it was right*, and *how long since the previous
+action*. That last field is the pace signal: "fast" and "slow" are measured
+against the child's own history, never an external target.
+
+**Parent dashboard** — ⚙️ → answer the number → *Parent dashboard* (or go to
+`#/parent`; the gate appears there too). It shows sessions and play time by
+day, per-game accuracy and pace with a this-week-versus-before trend, which
+letters take longest, and recent sessions. Data stays on the device unless a
+grown-up exports it or sets a webhook.
+
+**For assistants and other programs**, the log is a documented contract — see
+[EVENTS.md](EVENTS.md): a versioned JSON event schema, a pre-computed digest an
+LLM can read directly, a `window.AlexiaWorld` API for browser-driven agents,
+and an opt-in webhook that POSTs events as they happen.
+
 ## Running it locally
 
 No build step and no dependencies — plain ES modules and CSS. It has to be

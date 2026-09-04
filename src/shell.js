@@ -6,6 +6,7 @@ import { el } from './ui.js';
 import { say, sfx, hush } from './audio.js';
 import { settings, addStar, save } from './state.js';
 import { openParentGate } from './parentgate.js';
+import { endGame, leaveGame } from './log.js';
 
 export function gameShell(go, { middle, onNew, sections = () => [] } = {}) {
   const body = el('div', { class: 'game-body' });
@@ -13,7 +14,7 @@ export function gameShell(go, { middle, onNew, sections = () => [] } = {}) {
 
   const scene = el('div', { class: 'scene' },
     el('div', { class: 'topbar' },
-      el('button', { class: 'chip', 'aria-label': 'Home', onclick: () => { sfx.tap(); hush(); go(''); } }, '🏠'),
+      el('button', { class: 'chip', 'aria-label': 'Home', onclick: () => { sfx.tap(); hush(); leaveGame(); go(''); } }, '🏠'),
       middle || el('span'),
       el('div', { class: 'chip-row' },
         el('button', {
@@ -35,7 +36,8 @@ export function gameShell(go, { middle, onNew, sections = () => [] } = {}) {
    * offers Again and Home as two big buttons — the only two things a child
    * could want to do next.
    */
-  function celebrate({ headline, spoken, detail, onAgain }) {
+  function celebrate({ headline, spoken, detail, onAgain, stats = {} }) {
+    endGame(stats);                      // closes the game's record in the log
     sfx.win();
     settings.rounds += 1;
     const stars = addStar();

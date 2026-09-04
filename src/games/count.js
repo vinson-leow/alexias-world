@@ -10,6 +10,7 @@ import { el, shuffle, pickFresh, sparkleFrom, numberWord } from '../ui.js';
 import { characters, artUrl } from '../cards.js';
 import { say, hush, sfx } from '../audio.js';
 import { gameShell, pipRow } from '../shell.js';
+import { beginGame, action } from '../log.js';
 
 const ROUNDS = 5;
 const SEQUENCE = [1, 2, 3, 2, 4, 3, 5];   // eases in, then settles around the top
@@ -40,6 +41,7 @@ export function countScene(go) {
   function startGame() {
     round = 0;
     pips.paint(0);
+    beginGame('count', { rounds: ROUNDS });
     startRound();
   }
 
@@ -82,12 +84,14 @@ export function countScene(go) {
     badge.textContent = String(counted);
     sfx.pick();
     sparkleFrom(sprite);
+    action('count_tap', { n: counted, total, character: who.id });   // not `who` — that field is the player
 
     if (counted < total) {
       say(numberWord(counted));
       return;
     }
 
+    action('round_done', { n: total, total, correct: true });
     numeral.textContent = String(total);
     numeral.hidden = false;
     sfx.match();
@@ -99,6 +103,7 @@ export function countScene(go) {
       setTimeout(() => celebrate({
         headline: 'You can count!',
         spoken: 'You can count! Hooray!',
+        stats: { rounds: ROUNDS },
         onAgain: startGame,
       }), 1600);
     } else {

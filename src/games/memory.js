@@ -13,6 +13,7 @@ import { settings, lookBackMs, save, setCardCount, SPEEDS } from '../state.js';
 import { say, hush, sfx } from '../audio.js';
 import { gameShell, pipRow } from '../shell.js';
 import { choiceRow } from '../parentgate.js';
+import { beginGame, action } from '../log.js';
 
 const PRAISE = ['Yes! You found them!', 'A pair!', 'Well done!', 'You did it!', 'That is a match!'];
 const NUDGE  = ['Try again!', 'Have another look.', 'Keep looking!'];
@@ -127,6 +128,7 @@ export function memoryScene(go) {
     const designs = pickDesigns(settings.cardCount, settings.altOutfits);
     preload(designs);
     pairsTotal = designs.length;
+    beginGame('memory', { cards: settings.cardCount, speed: settings.speed, mixOutfits: settings.altOutfits });
     pips = pipRow(pairsTotal);
     middle.replaceChildren(pips.row);
 
@@ -171,6 +173,7 @@ export function memoryScene(go) {
     turnUp(card);
     sfx.flip();
     say(card.design.say);
+    action('flip', { card: card.design.id });
 
     if (!firstPick) { firstPick = card; return; }
 
@@ -203,6 +206,7 @@ export function memoryScene(go) {
   function onMatch(a, b) {
     a.matched = b.matched = true;
     found += 1;
+    action('match', { correct: true, pair: a.design.id });
     sfx.match();
     sparkleFrom(a.node);
     sparkleFrom(b.node);
@@ -216,6 +220,7 @@ export function memoryScene(go) {
   }
 
   function onMiss(a, b) {
+    action('miss', { correct: false, pair: `${a.design.id}|${b.design.id}` });
     sfx.nomatch();
     turnDown(a);
     turnDown(b);
@@ -230,6 +235,7 @@ export function memoryScene(go) {
       headline: 'You found them all!',
       spoken: 'You found them all! Hooray!',
       detail: `${moves} turns  ·  ${clockText(took)}`,
+      stats: { turns: moves, pairs: pairsTotal, cards: settings.cardCount, clockMs: Math.round(took) },
       onAgain: deal,
     });
   }
